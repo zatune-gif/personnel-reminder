@@ -212,6 +212,15 @@ def save_status_check(member_id: int, survey_date: str, responses: dict, analysi
         )
 
 
+def has_status_check_this_month(member_id: int, year_month: str) -> bool:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM status_checks WHERE member_id = ? AND survey_date LIKE ? LIMIT 1",
+            (member_id, f"{year_month}%"),
+        ).fetchone()
+        return row is not None
+
+
 def get_recent_status_checks(member_id: int, limit: int = 4) -> list:
     with get_conn() as conn:
         rows = conn.execute(

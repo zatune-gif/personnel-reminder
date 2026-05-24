@@ -1,19 +1,22 @@
 import os
 import json
 import logging
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-_model = genai.GenerativeModel("gemini-1.5-flash")
+_client = Groq(api_key=os.environ["GROQ_API_KEY"])
+_MODEL = "llama-3.3-70b-versatile"
 
 
 def _call(prompt: str) -> str:
-    response = _model.generate_content(prompt)
-    return response.text.strip()
+    response = _client.chat.completions.create(
+        model=_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content.strip()
 
 
 def _parse_json(text: str) -> dict:

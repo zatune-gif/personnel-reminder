@@ -183,6 +183,17 @@ def _notify_manager(member_id: int, message: str):
 @app.action("open_status_survey")
 def handle_open_status(ack, body, client):
     ack()
+    slack_user_id = body["user"]["id"]
+    member = db.get_member_by_slack_id(slack_user_id)
+    if member:
+        year_month = str(date.today())[:7]
+        if db.has_status_check_this_month(member["id"], year_month):
+            ch = _dm_channel(slack_user_id)
+            client.chat_postMessage(
+                channel=ch,
+                text="今月のチェックインはすでに回答済みです。次回は来月お答えください。",
+            )
+            return
     client.views_open(trigger_id=body["trigger_id"], view=monthly_checkin_modal())
 
 
@@ -240,6 +251,16 @@ def _process_status(slack_user_id: str, view: dict):
     member = db.get_member_by_slack_id(slack_user_id)
     if not member:
         logger.warning(f"Unknown Slack user: {slack_user_id}")
+        return
+
+    # 今月すでに回答済みならブロック
+    year_month = str(date.today())[:7]
+    if db.has_status_check_this_month(member["id"], year_month):
+        ch = _dm_channel(slack_user_id)
+        app.client.chat_postMessage(
+            channel=ch,
+            text="今月のチェックインはすでに回答済みです。次回は来月お答えください。",
+        )
         return
 
     # 年次サーベイ未完了なら月次チェックインをブロック
